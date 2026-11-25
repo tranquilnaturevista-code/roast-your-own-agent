@@ -34,6 +34,8 @@ def gate_errors(text):
         )
     if "\n" in text or "\r" in text:
         errors.append("entry must be exactly one line")
+    if any(ord(ch) < 32 for ch in text):
+        errors.append("entry contains a control character")
     return errors
 
 
@@ -44,12 +46,22 @@ def main():
             print("gate error: " + error, file=sys.stderr)
         sys.exit(1)
 
-    out_dir = os.environ.get("OUTPUT_DIR", "/output")
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = os.environ.get("OUTPUT_DIR") or "/output"
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+    except OSError as exc:
+        print("error: cannot create output dir %s: %s" % (out_dir, exc),
+              file=sys.stderr)
+        sys.exit(2)
     entry_path = os.path.join(out_dir, "entry.txt")
 
-    with open(entry_path, "w", encoding="utf-8", newline="") as f:
-        f.write(ROAST)
+    try:
+        with open(entry_path, "w", encoding="utf-8", newline="") as f:
+            f.write(ROAST)
+    except OSError as exc:
+        print("error: cannot write %s: %s" % (entry_path, exc),
+              file=sys.stderr)
+        sys.exit(2)
 
     # Read it back and re-check, so a write that silently altered the
     # text can never slip through unnoticed.
